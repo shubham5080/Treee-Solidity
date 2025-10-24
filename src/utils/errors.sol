@@ -45,6 +45,7 @@ error MinimumMarkDeadTimeNotReached();
 error InvalidCoordinates();
 error CannotVerifyOwnTree();
 error VerificationNotFound();
+error MaximumLimitRequestExceeded();
 
 /// User
 error UserAlreadyRegistered();

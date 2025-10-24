@@ -131,10 +131,10 @@ contract TreeNftVerificationTest is Test {
 
         vm.prank(planter);
         treeNft.removeVerification(0, verifier1);
-        assertFalse(treeNft.isVerified(0, verifier1));
-        TreeNftVerification[] memory verifications = treeNft.getTreeNftVerifiers(0);
+        assertTrue(treeNft.isVerified(0, verifier1));
+        (TreeNftVerification[] memory verifications,,) = treeNft.getTreeNftVerifiersPaginated(0, 0, 50);
         assertEq(verifications.length, 0);
-        Tree[] memory verifiedTrees = treeNft.getVerifiedTreesByUser(verifier1);
+        (Tree[] memory verifiedTrees,) = treeNft.getVerifiedTreesByUserPaginated(verifier1, 0, 50);
         assertEq(verifiedTrees.length, 0);
         assertEq(planterToken.balanceOf(planter), 0);
     }
@@ -159,14 +159,14 @@ contract TreeNftVerificationTest is Test {
         treeNft.verify(0, proofs2, "verified by v2");
         assertTrue(treeNft.isVerified(0, verifier1));
         assertTrue(treeNft.isVerified(0, verifier2));
-        TreeNftVerification[] memory verificationsBeforeRemoval = treeNft.getTreeNftVerifiers(0);
+        (TreeNftVerification[] memory verificationsBeforeRemoval,,) = treeNft.getTreeNftVerifiersPaginated(0, 0, 100);
         assertEq(verificationsBeforeRemoval.length, 2);
         vm.prank(planter);
         treeNft.removeVerification(0, verifier1);
-        assertFalse(treeNft.isVerified(0, verifier1));
+        assertTrue(treeNft.isVerified(0, verifier1));
         assertTrue(treeNft.isVerified(0, verifier2));
 
-        TreeNftVerification[] memory verificationsAfterRemoval = treeNft.getTreeNftVerifiers(0);
+        (TreeNftVerification[] memory verificationsAfterRemoval,,) = treeNft.getTreeNftVerifiersPaginated(0, 0, 100);
         assertEq(verificationsAfterRemoval.length, 1);
         assertEq(verificationsAfterRemoval[0].verifier, verifier2);
         UserDetails memory verifier1Details = treeNft.getUserProfile(verifier1);
@@ -212,11 +212,11 @@ contract TreeNftVerificationTest is Test {
         treeNft.verify(1, proofs, "verified tree 1");
         vm.stopPrank();
 
-        Tree[] memory verifiedTreesBefore = treeNft.getVerifiedTreesByUser(verifier1);
+        (Tree[] memory verifiedTreesBefore,) = treeNft.getVerifiedTreesByUserPaginated(verifier1, 0, 50);
         assertEq(verifiedTreesBefore.length, 2);
         vm.prank(planter);
         treeNft.removeVerification(0, verifier1);
-        Tree[] memory verifiedTreesAfter = treeNft.getVerifiedTreesByUser(verifier1);
+        (Tree[] memory verifiedTreesAfter,) = treeNft.getVerifiedTreesByUserPaginated(verifier1, 0, 50);
         assertEq(verifiedTreesAfter.length, 1);
         assertEq(verifiedTreesAfter[0].id, 1);
     }
@@ -262,14 +262,14 @@ contract TreeNftVerificationTest is Test {
         address planterTokenAddr = treeNft.s_userToPlanterTokenAddress(verifier1);
         PlanterToken planterToken = PlanterToken(planterTokenAddr);
         vm.prank(planter);
-        planterToken.transfer(address(0x999), NUM_TREES * 1e18 / 2);
+        planterToken.transfer(address(0x999), (NUM_TREES * 1e18) / 2);
 
         uint256 balanceBeforeRemoval = planterToken.balanceOf(planter);
         assertLt(balanceBeforeRemoval, NUM_TREES * 1e18);
         vm.prank(planter);
         treeNft.removeVerification(0, verifier1);
-        assertFalse(treeNft.isVerified(0, verifier1));
-        TreeNftVerification[] memory verifications = treeNft.getTreeNftVerifiers(0);
+        assertTrue(treeNft.isVerified(0, verifier1));
+        (TreeNftVerification[] memory verifications,,) = treeNft.getTreeNftVerifiersPaginated(0, 0, 100);
         assertEq(verifications.length, 0);
     }
 
@@ -305,7 +305,7 @@ contract TreeNftVerificationTest is Test {
         proofs2[0] = "proof2";
         treeNft.verify(0, proofs2, "verified by v2");
 
-        TreeNftVerification[] memory verifications = treeNft.getTreeNftVerifiers(0);
+        (TreeNftVerification[] memory verifications,,) = treeNft.getTreeNftVerifiersPaginated(0, 0, 100);
         assertEq(verifications.length, 2);
         assertEq(verifications[0].verifier, verifier1);
         assertEq(verifications[1].verifier, verifier2);
@@ -329,7 +329,7 @@ contract TreeNftVerificationTest is Test {
         vm.prank(verifier1);
         treeNft.verify(1, proofs, "verified tree 1");
 
-        Tree[] memory verifiedTrees = treeNft.getVerifiedTreesByUser(verifier1);
+        (Tree[] memory verifiedTrees,) = treeNft.getVerifiedTreesByUserPaginated(verifier1, 0, 50);
 
         assertEq(verifiedTrees.length, 2);
         assertEq(verifiedTrees[0].id, 0);
@@ -426,12 +426,12 @@ contract TreeNftVerificationTest is Test {
         treeNft.verify(2, proofs, "verified tree 2");
         vm.stopPrank();
 
-        Tree[] memory verifiedTrees = treeNft.getVerifiedTreesByUser(verifier1);
+        (Tree[] memory verifiedTrees,) = treeNft.getVerifiedTreesByUserPaginated(verifier1, 0, 50);
         assertEq(verifiedTrees.length, 3);
 
         vm.prank(planter);
         treeNft.removeVerification(1, verifier1);
-        Tree[] memory remainingTrees = treeNft.getVerifiedTreesByUser(verifier1);
+        (Tree[] memory remainingTrees,) = treeNft.getVerifiedTreesByUserPaginated(verifier1, 0, 50);
         assertEq(remainingTrees.length, 2);
 
         bool hasTree0 = false;
@@ -442,7 +442,7 @@ contract TreeNftVerificationTest is Test {
         }
         assertTrue(hasTree0, "Tree 0 should still be verified");
         assertTrue(hasTree2, "Tree 2 should still be verified");
-        assertFalse(treeNft.isVerified(1, verifier1));
+        assertTrue(treeNft.isVerified(1, verifier1));
     }
 
     function test_removeVerificationPreservesOtherVerifiers() public {
@@ -471,17 +471,412 @@ contract TreeNftVerificationTest is Test {
         assertTrue(treeNft.isVerified(0, verifier2));
         assertTrue(treeNft.isVerified(0, thirdVerifier));
 
-        TreeNftVerification[] memory allVerifications = treeNft.getTreeNftVerifiers(0);
+        (TreeNftVerification[] memory allVerifications,,) = treeNft.getTreeNftVerifiersPaginated(0, 0, 100);
         assertEq(allVerifications.length, 3);
 
         vm.prank(planter);
         treeNft.removeVerification(0, verifier2);
 
         assertTrue(treeNft.isVerified(0, verifier1));
-        assertFalse(treeNft.isVerified(0, verifier2));
+        assertTrue(treeNft.isVerified(0, verifier2));
         assertTrue(treeNft.isVerified(0, thirdVerifier));
 
-        TreeNftVerification[] memory remainingVerifications = treeNft.getTreeNftVerifiers(0);
+        (TreeNftVerification[] memory remainingVerifications,,) = treeNft.getTreeNftVerifiersPaginated(0, 0, 100);
         assertEq(remainingVerifications.length, 2);
+    }
+
+    function test_getUserVerifierTokenDetailsPaginated() public {
+        // Register user and mint trees
+
+        vm.prank(verifier1);
+        treeNft.registerUserProfile("Verifier1", "ipfs://profile1");
+
+        string[] memory photos = new string[](1);
+        photos[0] = "photo1";
+
+        vm.prank(planter);
+        treeNft.mintNft(LATITUDE, LONGITUDE, "Tree1", IMAGE_URI, QR_HASH, METADATA, GEOHASH, photos, NUM_TREES);
+
+        vm.prank(planter);
+        treeNft.mintNft(
+            LATITUDE + 1000, LONGITUDE + 1000, "Tree2", IMAGE_URI, QR_HASH, METADATA, GEOHASH, photos, NUM_TREES
+        );
+
+        vm.prank(planter);
+        treeNft.mintNft(
+            LATITUDE + 2000, LONGITUDE + 2000, "Tree3", IMAGE_URI, QR_HASH, METADATA, GEOHASH, photos, NUM_TREES
+        );
+
+        // Verifier1 verifies all trees
+        vm.prank(verifier1);
+        string[] memory proofs = new string[](1);
+        proofs[0] = "proof1";
+        treeNft.verify(0, proofs, "verified tree 0");
+
+        vm.prank(verifier1);
+        treeNft.verify(1, proofs, "verified tree 1");
+
+        vm.prank(verifier1);
+        treeNft.verify(2, proofs, "verified tree 2");
+
+        (VerificationDetails[] memory details1, uint256 totalCount1) =
+            treeNft.getUserVerifierTokenDetails(planter, 0, 2);
+        assertEq(totalCount1, 3, "Total count should be 3");
+        assertEq(details1.length, 2, "Should return 2 items with limit=2");
+        assertEq(details1[0].verifier, verifier1);
+        assertEq(details1[1].verifier, verifier1);
+        assertEq(details1[0].numberOfTrees, 3 * NUM_TREES * 1e18);
+        assertEq(details1[1].numberOfTrees, 3 * NUM_TREES * 1e18);
+
+        (VerificationDetails[] memory details2, uint256 totalCount2) =
+            treeNft.getUserVerifierTokenDetails(planter, 2, 2);
+        assertEq(details2.length, 1);
+        assertEq(totalCount2, 3);
+        assertEq(details2[0].verifier, verifier1);
+        assertEq(details2[0].numberOfTrees, 3 * NUM_TREES * 1e18);
+
+        (VerificationDetails[] memory details3, uint256 totalCount3) =
+            treeNft.getUserVerifierTokenDetails(planter, 5, 2);
+        assertEq(details3.length, 0);
+        assertEq(totalCount3, 3);
+    }
+
+    function test_getUserVerifierTokenDetailsEmptyUser() public view {
+        // Test with user who has no verifications
+        (VerificationDetails[] memory details, uint256 totalCount) =
+            treeNft.getUserVerifierTokenDetails(verifier1, 0, 10);
+        assertEq(details.length, 0);
+        assertEq(totalCount, 0);
+    }
+
+    function test_getUserVerifierTokenDetailsWithTokenBalances() public {
+        // Register user and mint tree
+        vm.prank(verifier1);
+        treeNft.registerUserProfile("Verifier1", "ipfs://profile1");
+
+        vm.prank(planter);
+        string[] memory photos = new string[](1);
+        photos[0] = "photo1";
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_HASH, METADATA, GEOHASH, photos, NUM_TREES);
+
+        vm.prank(verifier1);
+        string[] memory proofs = new string[](1);
+        proofs[0] = "proof1";
+        treeNft.verify(0, proofs, "verified");
+
+        (VerificationDetails[] memory details, uint256 totalCount) = treeNft.getUserVerifierTokenDetails(planter, 0, 10);
+        assertEq(details.length, 1);
+        assertEq(totalCount, 1);
+
+        address planterTokenAddr = treeNft.s_userToPlanterTokenAddress(verifier1);
+        PlanterToken planterToken = PlanterToken(planterTokenAddr);
+        assertEq(details[0].numberOfTrees, planterToken.balanceOf(planter));
+        assertEq(details[0].numberOfTrees, NUM_TREES * 1e18);
+        assertEq(details[0].verifierPlanterTokenAddress, planterTokenAddr);
+        assertEq(details[0].description, "verified");
+        assertFalse(details[0].isHidden);
+    }
+
+    function test_getUserVerifierTokenDetailsWithHiddenVerifications() public {
+        // Register users and mint tree
+        vm.prank(verifier1);
+        treeNft.registerUserProfile("Verifier1", "ipfs://profile1");
+
+        vm.prank(planter);
+        string[] memory photos = new string[](1);
+        photos[0] = "photo1";
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_HASH, METADATA, GEOHASH, photos, NUM_TREES);
+
+        vm.prank(verifier1);
+        string[] memory proofs = new string[](1);
+        proofs[0] = "proof1";
+        treeNft.verify(0, proofs, "verified");
+
+        vm.prank(planter);
+        treeNft.removeVerification(0, verifier1);
+
+        (VerificationDetails[] memory details, uint256 totalCount) = treeNft.getUserVerifierTokenDetails(planter, 0, 10);
+        assertEq(details.length, 1);
+        assertEq(totalCount, 1);
+        assertTrue(details[0].isHidden); // Should be marked as hidden
+        assertEq(details[0].verifier, verifier1);
+    }
+
+    function test_getUserVerifierTokenDetailsPaginationBoundaries() public {
+        // Register user and mint tree
+
+        vm.prank(verifier1);
+        treeNft.registerUserProfile("Verifier1", "ipfs://profile1");
+
+        vm.prank(planter);
+        string[] memory photos = new string[](1);
+        photos[0] = "photo1";
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_HASH, METADATA, GEOHASH, photos, NUM_TREES);
+
+        // Verifier1 verifies the tree
+        vm.prank(verifier1);
+        string[] memory proofs = new string[](1);
+        proofs[0] = "proof1";
+        treeNft.verify(0, proofs, "verified");
+
+        (VerificationDetails[] memory details1, uint256 totalCount1) =
+            treeNft.getUserVerifierTokenDetails(planter, 0, 100);
+        assertEq(details1.length, 1);
+        assertEq(totalCount1, 1);
+
+        (VerificationDetails[] memory details2, uint256 totalCount2) =
+            treeNft.getUserVerifierTokenDetails(planter, 1, 10);
+        assertEq(details2.length, 0);
+        assertEq(totalCount2, 1);
+
+        (VerificationDetails[] memory details3, uint256 totalCount3) =
+            treeNft.getUserVerifierTokenDetails(planter, 0, 0);
+        assertEq(details3.length, 0);
+        assertEq(totalCount3, 1);
+    }
+
+    function test_cannotReverifyAfterRemoval() public {
+        vm.prank(planter);
+        string[] memory photos = new string[](1);
+        photos[0] = "photo1";
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_HASH, METADATA, GEOHASH, photos, NUM_TREES);
+
+        vm.prank(verifier1);
+        string[] memory proofs = new string[](1);
+        proofs[0] = "proof1";
+        treeNft.verify(0, proofs, "verified");
+        assertTrue(treeNft.isVerified(0, verifier1));
+
+        vm.prank(planter);
+        treeNft.removeVerification(0, verifier1);
+        assertTrue(treeNft.isVerified(0, verifier1));
+
+        vm.prank(verifier1);
+        vm.expectRevert(AlreadyVerified.selector);
+        treeNft.verify(0, proofs, "try to verify again");
+    }
+
+    function test_removeVerificationOptimized() public {
+        vm.prank(planter);
+        string[] memory photos = new string[](1);
+        photos[0] = "photo1";
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_HASH, METADATA, GEOHASH, photos, NUM_TREES);
+
+        vm.prank(verifier1);
+        string[] memory proofs = new string[](1);
+        proofs[0] = "proof1";
+        treeNft.verify(0, proofs, "verified");
+
+        address planterTokenAddr = treeNft.s_userToPlanterTokenAddress(verifier1);
+        PlanterToken planterToken = PlanterToken(planterTokenAddr);
+        assertEq(planterToken.balanceOf(planter), NUM_TREES * 1e18);
+
+        uint256 verificationId = 0;
+        uint256 verifierArrayIndex = 0;
+        uint256 verifiedTreesArrayIndex = 0;
+        uint256 userVerificationIndex = 0;
+        uint256 verifierTokenAddrIndex = 0;
+
+        vm.prank(planter);
+        treeNft.removeVerificationOptimized(
+            verificationId, verifierArrayIndex, verifiedTreesArrayIndex, userVerificationIndex, verifierTokenAddrIndex
+        );
+
+        (TreeNftVerification[] memory verifications,,) = treeNft.getTreeNftVerifiersPaginated(0, 0, 100);
+        assertEq(verifications.length, 0);
+        assertEq(planterToken.balanceOf(planter), 0);
+    }
+
+    function test_removeVerificationOptimizedWithMultipleVerifiers() public {
+        vm.prank(planter);
+        string[] memory photos = new string[](1);
+        photos[0] = "photo1";
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_HASH, METADATA, GEOHASH, photos, NUM_TREES);
+
+        vm.prank(verifier1);
+        string[] memory proofs1 = new string[](1);
+        proofs1[0] = "proof1";
+        treeNft.verify(0, proofs1, "verified by v1");
+
+        vm.prank(verifier2);
+        string[] memory proofs2 = new string[](1);
+        proofs2[0] = "proof2";
+        treeNft.verify(0, proofs2, "verified by v2");
+
+        uint256 verificationId = 1;
+        uint256 verifierArrayIndex = 1;
+        uint256 verifiedTreesArrayIndex = 0;
+        uint256 userVerificationIndex = 1;
+        uint256 verifierTokenAddrIndex = 1;
+
+        vm.prank(planter);
+        treeNft.removeVerificationOptimized(
+            verificationId, verifierArrayIndex, verifiedTreesArrayIndex, userVerificationIndex, verifierTokenAddrIndex
+        );
+
+        (TreeNftVerification[] memory verifications,,) = treeNft.getTreeNftVerifiersPaginated(0, 0, 100);
+        assertEq(verifications.length, 1);
+        assertEq(verifications[0].verifier, verifier1);
+    }
+
+    function test_removeVerificationOptimizedInvalidVerificationId() public {
+        vm.prank(planter);
+        string[] memory photos = new string[](1);
+        photos[0] = "photo1";
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_HASH, METADATA, GEOHASH, photos, NUM_TREES);
+
+        vm.prank(verifier1);
+        string[] memory proofs = new string[](1);
+        proofs[0] = "proof1";
+        treeNft.verify(0, proofs, "verified");
+
+        vm.prank(planter);
+        vm.expectRevert(VerificationNotFound.selector);
+        treeNft.removeVerificationOptimized(999, 0, 0, 0, 0);
+    }
+
+    function test_removeVerificationOptimizedInvalidVerifierIndex() public {
+        vm.prank(planter);
+        string[] memory photos = new string[](1);
+        photos[0] = "photo1";
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_HASH, METADATA, GEOHASH, photos, NUM_TREES);
+
+        vm.prank(verifier1);
+        string[] memory proofs = new string[](1);
+        proofs[0] = "proof1";
+        treeNft.verify(0, proofs, "verified");
+
+        vm.prank(planter);
+        vm.expectRevert(VerificationNotFound.selector);
+        treeNft.removeVerificationOptimized(0, 999, 0, 0, 0);
+    }
+
+    function test_removeVerificationOptimizedInvalidTreeIndex() public {
+        vm.prank(planter);
+        string[] memory photos = new string[](1);
+        photos[0] = "photo1";
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_HASH, METADATA, GEOHASH, photos, NUM_TREES);
+
+        vm.prank(verifier1);
+        string[] memory proofs = new string[](1);
+        proofs[0] = "proof1";
+        treeNft.verify(0, proofs, "verified");
+
+        vm.prank(planter);
+        vm.expectRevert(VerificationNotFound.selector);
+        treeNft.removeVerificationOptimized(0, 0, 999, 0, 0);
+    }
+
+    function test_removeVerificationOptimizedInvalidUserVerificationIndex() public {
+        vm.prank(planter);
+        string[] memory photos = new string[](1);
+        photos[0] = "photo1";
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_HASH, METADATA, GEOHASH, photos, NUM_TREES);
+
+        vm.prank(verifier1);
+        string[] memory proofs = new string[](1);
+        proofs[0] = "proof1";
+        treeNft.verify(0, proofs, "verified");
+
+        vm.prank(planter);
+        vm.expectRevert(VerificationNotFound.selector);
+        treeNft.removeVerificationOptimized(0, 0, 0, 999, 0);
+    }
+
+    function test_removeVerificationOptimizedOnlyOwner() public {
+        vm.prank(planter);
+        string[] memory photos = new string[](1);
+        photos[0] = "photo1";
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_HASH, METADATA, GEOHASH, photos, NUM_TREES);
+
+        vm.prank(verifier1);
+        string[] memory proofs = new string[](1);
+        proofs[0] = "proof1";
+        treeNft.verify(0, proofs, "verified");
+
+        vm.prank(verifier2);
+        vm.expectRevert(NotTreeOwner.selector);
+        treeNft.removeVerificationOptimized(0, 0, 0, 0, 0);
+    }
+
+    function test_removeVerificationOptimizedAlreadyHidden() public {
+        vm.prank(planter);
+        string[] memory photos = new string[](1);
+        photos[0] = "photo1";
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_HASH, METADATA, GEOHASH, photos, NUM_TREES);
+
+        vm.prank(verifier1);
+        string[] memory proofs = new string[](1);
+        proofs[0] = "proof1";
+        treeNft.verify(0, proofs, "verified");
+
+        vm.prank(planter);
+        treeNft.removeVerificationOptimized(0, 0, 0, 0, 0);
+
+        vm.prank(planter);
+        vm.expectRevert(VerificationNotFound.selector);
+        treeNft.removeVerificationOptimized(0, 0, 0, 0, 0);
+    }
+
+    function test_removeVerificationOptimizedEmitsEvent() public {
+        vm.prank(planter);
+        string[] memory photos = new string[](1);
+        photos[0] = "photo1";
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_HASH, METADATA, GEOHASH, photos, NUM_TREES);
+
+        vm.prank(verifier1);
+        string[] memory proofs = new string[](1);
+        proofs[0] = "proof1";
+        treeNft.verify(0, proofs, "verified");
+
+        vm.prank(planter);
+        vm.expectEmit(true, true, true, false);
+        emit VerificationRemoved(0, 0, verifier1);
+        treeNft.removeVerificationOptimized(0, 0, 0, 0, 0);
+    }
+
+    function test_removeVerificationOptimizedWithInsufficientTokens() public {
+        vm.prank(planter);
+        string[] memory photos = new string[](1);
+        photos[0] = "photo1";
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_HASH, METADATA, GEOHASH, photos, NUM_TREES);
+
+        vm.prank(verifier1);
+        string[] memory proofs = new string[](1);
+        proofs[0] = "proof1";
+        treeNft.verify(0, proofs, "verified");
+
+        address planterTokenAddr = treeNft.s_userToPlanterTokenAddress(verifier1);
+        PlanterToken planterToken = PlanterToken(planterTokenAddr);
+
+        vm.prank(planter);
+        planterToken.transfer(address(0x999), (NUM_TREES * 1e18) / 2);
+
+        vm.prank(planter);
+        treeNft.removeVerificationOptimized(0, 0, 0, 0, 0);
+
+        (TreeNftVerification[] memory verifications,,) = treeNft.getTreeNftVerifiersPaginated(0, 0, 100);
+        assertEq(verifications.length, 0);
+    }
+
+    function test_removeVerificationOptimizedRevocationCounter() public {
+        vm.prank(verifier1);
+        treeNft.registerUserProfile("Verifier1", "ipfs://profile");
+
+        vm.prank(planter);
+        string[] memory photos = new string[](1);
+        photos[0] = "photo1";
+        treeNft.mintNft(LATITUDE, LONGITUDE, SPECIES, IMAGE_URI, QR_HASH, METADATA, GEOHASH, photos, NUM_TREES);
+
+        vm.prank(verifier1);
+        string[] memory proofs = new string[](1);
+        proofs[0] = "proof1";
+        treeNft.verify(0, proofs, "verified");
+
+        vm.prank(planter);
+        treeNft.removeVerificationOptimized(0, 0, 0, 0, 0);
+
+        UserDetails memory userDetails = treeNft.getUserProfile(verifier1);
+        assertEq(userDetails.verificationsRevoked, 1);
     }
 }

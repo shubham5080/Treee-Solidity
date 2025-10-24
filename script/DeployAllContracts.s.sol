@@ -10,8 +10,6 @@ import "../src/OrganisationFactory.sol";
 
 contract DeployAllContractsAtOnce is Script {
     address public careTokenAddress;
-    address public planterTokenAddress;
-    address public verifierTokenAddress;
     address public legacyTokenAddress;
     address public treeNftAddress;
 
