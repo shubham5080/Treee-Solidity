@@ -65,7 +65,7 @@ It powers transparent and auditable sustainability tracking within the **Stabili
 
 ## Overview
 
-Treee is a decentralized protocol for tree planting and verification. Organizations can register, propose tree planting initiatives, and mint NFTs representing planted trees. Community members verify these trees through on-chain proofs, earning rewards while ensuring transparency.
+Treee is a decentralized protocol for tree planting and verification. Organizations can register, propose tree-planting initiatives, and mint NFTs representing planted trees. Community members verify these trees through on-chain proofs, earning rewards while ensuring transparency.
 
 Key features:
 - **Organization Management**: Create and manage tree-planting organizations with member voting
@@ -80,7 +80,7 @@ Key features:
 
 ### Core Components
 
-```
+```text
 ├── OrganisationFactory.sol     # Factory for creating organizations
 ├── Organisation.sol           # Organization logic and governance
 ├── TreeNft.sol               # ERC721 NFT contract for trees
